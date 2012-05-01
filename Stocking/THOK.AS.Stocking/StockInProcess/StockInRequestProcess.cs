@@ -30,11 +30,17 @@ namespace THOK.AS.Stocking.StockInProcess
                     case "Init":
                         break;
                     case "FirstBatch":
-                        AddFirstBatch();
+                        if (AddFirstBatch())
+                        {
+                            WriteToProcess("LEDProcess", "Refresh", null);
+                        }
                         break;
                     case "StockInRequest":                        
                         cigaretteCode = Convert.ToString(stateItem.State);
-                        StockInRequest(cigaretteCode);
+                        if (Request(cigaretteCode) || RequestAll())
+                        {
+                            WriteToProcess("LEDProcess", "Refresh", null);
+                        }
                         break;
                     default:
                         break;
@@ -42,123 +48,226 @@ namespace THOK.AS.Stocking.StockInProcess
             }
             catch (Exception e)
             {
-                Logger.Error("入库任务请求批次生成处理失败，原因：" + e.Message);
+                Logger.Error("入库任务请求批次生成处理失败，原因：" + e.Message + e.StackTrace);
             }
         }
 
-        private void AddFirstBatch()
+        private bool AddFirstBatch()
         {
+            bool bResult = false;
             using (PersistentManager pm = new PersistentManager())
             {
                 SupplyDao supplyDao = new SupplyDao();              
                 ChannelDao channelDao = new ChannelDao();
 
-                DataTable cigaretteTable = supplyDao.FindCigarette();
+                //参数化查询需要叠垛出库的补货计划；
+                bool b1 = Convert.ToBoolean(Context.Attributes["B1"]);
+                bool b2 = Convert.ToBoolean(Context.Attributes["B2"]);
+                DataTable cigaretteTable = channelDao.FindChannelForCigaretteCode(b1,b2);
+                int stockInCapacityQuantity =  Convert.ToInt32(Context.Attributes["StockInCapacityQuantity"]);
+                IDictionary<string, int> stockInQuantityDic = new Dictionary<string, int>();
                 if (cigaretteTable.Rows.Count !=0)
                 {
                     foreach (DataRow row in cigaretteTable.Rows)
                     {
-                        DataTable channelTable = channelDao.FindChannelForCigaretteCode(row["CigaretteCode"].ToString());
-                        int stockRemainQuantity = Convert.ToInt32(channelTable.Rows[0]["REMAINQUANTITY"]);
+                        string channelCode = row["CHANNELCODE"].ToString();
+                        string cigaretteCode = row["CIGARETTECODE"].ToString();
+                        string cigaretteName = row["CIGARETTENAME"].ToString();
+                        bool isStockIn = row["ISSTOCKIN"].ToString() == "1" ? true : false;
+                        int remainQuantity = Convert.ToInt32(row["REMAINQUANTITY"]);
+                        string barcode = row["BARCODE"].ToString();
+                        int quantity = Convert.ToInt32(row["QUANTITY"]) - (stockInQuantityDic.ContainsKey(cigaretteCode) ? stockInQuantityDic[cigaretteCode] : 0);
 
-                        if (Convert.ToInt32(row["Quantity"]) + stockRemainQuantity >= Convert.ToInt32(Context.Attributes["StockInCapacityQuantity"]))
+                        if (quantity + remainQuantity >= stockInCapacityQuantity)
                         {
-                            StockInRequest(row["CigaretteCode"].ToString(), Convert.ToInt32(Context.Attributes["StockInCapacityQuantity"]), stockRemainQuantity);
+                            StockInRequest(channelCode, cigaretteCode, cigaretteName, barcode, stockInCapacityQuantity, remainQuantity, isStockIn);
+                            if (!stockInQuantityDic.ContainsKey(cigaretteCode))
+                            {
+                                stockInQuantityDic.Add(cigaretteCode, 0);
+                            }
+                            stockInQuantityDic[cigaretteCode] += stockInCapacityQuantity - remainQuantity;
+                            bResult = true;
                         }
-                        else if (Convert.ToInt32(row["Quantity"]) + stockRemainQuantity > 0)
+                        else if (quantity + remainQuantity > 0)
                         {
-                            StockInRequest(row["CigaretteCode"].ToString(), Convert.ToInt32(row["Quantity"]) + stockRemainQuantity, stockRemainQuantity);
+                            StockInRequest(channelCode, cigaretteCode, cigaretteName, barcode, quantity + remainQuantity, remainQuantity, isStockIn);
+                            bResult = true;
+                        }
+                        else if (Convert.ToInt32(row["QUANTITY_1"]) == 0)
+                        {
+                            //参数化动态调整理补货烟道；
+                            bool b3 = Convert.ToBoolean(Context.Attributes["B3"]);
+                            if (b3)
+                            {
+                                ReSetStockChannel(channelCode);
+                            }
                         }
                     }
+
                     Logger.Info("生产第一批次入库任务成功");
                     WriteToProcess("LEDProcess", "Refresh", null);
                 }
             }
+            return bResult;
         }
 
-        private void StockInRequest(string cigaretteCode)
+        private bool RequestAll()
+        {
+            bool bResult = false;
+            using (PersistentManager pm = new PersistentManager())
+            {
+                ChannelDao channelDao = new ChannelDao();
+
+                //参数化查询需要叠垛出库的补货计划；
+                bool b1 = Convert.ToBoolean(Context.Attributes["B1"]);
+                bool b2 = Convert.ToBoolean(Context.Attributes["B2"]);
+                DataTable cigaretteTable = channelDao.FindChannelForCigaretteCode(b1, b2);
+
+                if (cigaretteTable.Rows.Count != 0)
+                {
+                    foreach (DataRow row in cigaretteTable.Rows)
+                    {
+                        string cigaretteCode = row["CIGARETTECODE"].ToString();
+                        bResult = Request(cigaretteCode) ? true : bResult;
+                    }
+                }
+            }
+            return bResult;
+        }
+
+        private bool Request(string cigaretteCode)
         {
             using (PersistentManager pm = new PersistentManager())
             {
                 StockInBatchDao stockInBatchDao = new StockInBatchDao();
+                DataTable stockInBatchTable = stockInBatchDao.FindStockInBatch(cigaretteCode);
+
+                if (stockInBatchTable.Rows.Count == 0 )
+                {
+                    if (StockInRequest(cigaretteCode))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        private bool StockInRequest(string cigaretteCode)
+        {
+            bool bResult = false;
+            using (PersistentManager pm = new PersistentManager())
+            {
                 SupplyDao supplyDao = new SupplyDao();
                 ChannelDao channelDao = new ChannelDao();
 
-                DataTable stockInBatchTable = stockInBatchDao.FindStockInBatch(cigaretteCode);
-
-                DataTable channelTable = channelDao.FindChannelForCigaretteCode(cigaretteCode);
-                int stockRemainQuantity = Convert.ToInt32(channelTable.Rows[0]["REMAINQUANTITY"]);
-
-                DataTable cigaretteTable = supplyDao.FindCigarette(cigaretteCode, stockRemainQuantity.ToString());
-
-                if (stockInBatchTable.Rows.Count == 0 && cigaretteTable.Rows.Count != 0 )
+                //参数化查询需要叠垛出库的补货计划；
+                bool b1 = Convert.ToBoolean(Context.Attributes["B1"]);
+                bool b2 = Convert.ToBoolean(Context.Attributes["B2"]);
+                DataTable cigaretteTable = channelDao.FindChannelForCigaretteCode(cigaretteCode, b1, b2);
+                int stockInCapacityQuantity = Convert.ToInt32(Context.Attributes["StockInCapacityQuantity"]);
+                IDictionary<string, int> stockInQuantityDic = new Dictionary<string, int>();
+                if (cigaretteTable.Rows.Count != 0)
                 {
-                    DataRow row = cigaretteTable.Rows[0];
+                    foreach (DataRow row in cigaretteTable.Rows)
+                    {
+                        if (Convert.ToInt32(row["QUANTITY_1"]) <= Convert.ToInt32(Context.Attributes["StockInRequestRemainQuantity"]))
+                        {
+                            string channelCode = row["CHANNELCODE"].ToString();
+                            string cigaretteName = row["CIGARETTENAME"].ToString();
+                            bool isStockIn = row["ISSTOCKIN"].ToString() == "1" ? true : false;
+                            int remainQuantity = Convert.ToInt32(row["REMAINQUANTITY"]);
+                            string barcode = row["BARCODE"].ToString();
+                            int quantity = Convert.ToInt32(row["QUANTITY"]) - (stockInQuantityDic.ContainsKey(cigaretteCode) ? stockInQuantityDic[cigaretteCode] : 0);
 
-                    if (Convert.ToInt32(row["Quantity"]) >= Convert.ToInt32(Context.Attributes["StockInCapacityQuantity"]))
-                    {
-                        StockInRequest(row["CigaretteCode"].ToString(), Convert.ToInt32(Context.Attributes["StockInCapacityQuantity"]), 0);
-                        Logger.Info(row["CigaretteName"].ToString() + "生成入库任务成功");
-                    }
-                    else if (Convert.ToInt32(row["Quantity"]) > 0)
-                    {
-                        StockInRequest(row["CigaretteCode"].ToString(), Convert.ToInt32(row["Quantity"]),0);
-                        Logger.Info(row["CigaretteName"].ToString() + "生成入库任务成功");
-                    }
-                    
-                    WriteToProcess("LEDProcess", "Refresh", null);
+                            if (quantity + remainQuantity >= stockInCapacityQuantity)
+                            {
+                                StockInRequest(channelCode, cigaretteCode, cigaretteName, barcode, stockInCapacityQuantity, 0, isStockIn);
+                                if (!stockInQuantityDic.ContainsKey(cigaretteCode) )
+                                {
+                                    stockInQuantityDic.Add(cigaretteCode, 0);
+                                }
+                                stockInQuantityDic[cigaretteCode] += stockInCapacityQuantity - remainQuantity;
+                                bResult = true;
+                            }
+                            else if (quantity + remainQuantity > 0)
+                            {
+                                StockInRequest(channelCode, cigaretteCode, cigaretteName, barcode, quantity + remainQuantity, 0, isStockIn);
+                                bResult = true;
+                            }
+                            else if (Convert.ToInt32(row["QUANTITY_1"]) == 0)
+                            {
+                                //参数化动态调整理补货烟道；
+                                bool b3 = Convert.ToBoolean(Context.Attributes["B3"]);
+                                if (b3)
+                                {
+                                    ReSetStockChannel(channelCode);
+                                }
+                            }
+                        }
+                    }                    
                 }
             }
+            return bResult;
         }
 
-        private void StockInRequest(string cigaretteCode, int quantity, int stockRemainQuantity)
+        private void ReSetStockChannel(string channelCode)
         {
             using (PersistentManager pm = new PersistentManager())
             {
-                StockInBatchDao stockInBatchDao = new StockInBatchDao();
-                StockInDao stockInDao = new StockInDao();
                 ChannelDao channelDao = new ChannelDao();
-                
-                stockInBatchDao.SetPersistentManager(pm);
-                stockInDao.SetPersistentManager(pm);
-                channelDao.SetPersistentManager(pm);
-                
-                pm.BeginTransaction();
-                try
+
+                //参数化查询需要叠垛出库的补货计划；
+                bool b1 = Convert.ToBoolean(Context.Attributes["B1"]);
+                bool b2 = Convert.ToBoolean(Context.Attributes["B2"]);
+                DataTable cigaretteTable = channelDao.FindChannelForCigaretteCode(b1, b2);
+                DataRow[] cigaretteRows = cigaretteTable.Select("", "QUANTITY DESC");
+
+                if (cigaretteRows.Length > 0)
                 {
-                    DataTable cigaretteTable = channelDao.FindChannelForCigaretteCode(cigaretteCode);
-
-                    if (cigaretteTable.Rows.Count != 0)
+                    int count = 1;
+                    while (count < 4)
                     {
-                        DataRow row = cigaretteTable.Rows[0];
-                        bool isStockIn = row["ISSTOCKIN"].ToString() == "1" ? true : false;
-
-                        int batchNo = stockInBatchDao.FindMaxBatchNo() + 1;
-                        stockInBatchDao.InsertBatch(batchNo, row["CHANNELCODE"].ToString(), cigaretteCode, row["CIGARETTENAME"].ToString(), quantity, isStockIn ? stockRemainQuantity : 0);
-                        
-                        int stockInID = stockInDao.FindMaxInID();
-                        for (int i = 1; i <= quantity; i++)
+                        foreach (DataRow cigaretteRow in cigaretteRows)
                         {
-                            stockInID = stockInID + 1;
-                            stockInDao.Insert(stockInID, batchNo, row["CHANNELCODE"].ToString(), cigaretteCode, row["CIGARETTENAME"].ToString(), row["BARCODE"].ToString(), (isStockIn && stockRemainQuantity-- > 0) ? "1" : "0");
-                        }
-
-                        pm.Commit();
-                        
-                        try
-                        {
-                            using (PersistentManager pmWES = new PersistentManager("WESConnection"))
+                            string cigaretteCode = cigaretteRow["CIGARETTECODE"].ToString();
+                            int quantity = Convert.ToInt32(cigaretteRow["QUANTITY"]);
+                            int counttmp = Convert.ToInt32(cigaretteTable.Compute("COUNT(CIGARETTECODE)", string.Format("CIGARETTECODE='{0}'", cigaretteCode)));
+                            if (count == counttmp && quantity > 0)
                             {
-                                StockInBatchDao stockInBatchDaoWES = new StockInBatchDao();
-                                stockInBatchDaoWES.SetPersistentManager(pmWES);
-                                stockInBatchDaoWES.InsertBatch(batchNo, row["CHANNELCODE"].ToString(), cigaretteCode, row["CIGARETTENAME"].ToString(), quantity, isStockIn ? stockRemainQuantity : 0);
+                                channelDao.ReSetStockChannel(channelCode, cigaretteRow);
+                                return;
                             }
                         }
-                        catch (Exception e)
-                        {
-                            Logger.Error("上传入库计划失败，详情："+ e.Message);
-                        }
+                        count++;
                     }
+                }                
+            }
+        }
+
+        private void StockInRequest(string channelCode, string cigaretteCode, string cigaretteName, string barcode, int quantity, int stockRemainQuantity, bool isStockIn)
+        {
+            using (PersistentManager pm = new PersistentManager())
+            {
+                try
+                {
+                    pm.BeginTransaction();
+
+                    StockInBatchDao stockInBatchDao = new StockInBatchDao();
+                    StockInDao stockInDao = new StockInDao();
+
+                    int batchNo = stockInBatchDao.FindMaxBatchNo() + 1;
+                    stockInBatchDao.InsertBatch(batchNo, channelCode, cigaretteCode, cigaretteName, quantity, isStockIn ? stockRemainQuantity : 0);
+
+                    int stockInID = stockInDao.FindMaxInID();
+                    for (int i = 1; i <= quantity; i++)
+                    {
+                        stockInID = stockInID + 1;
+                        stockInDao.Insert(stockInID, batchNo, channelCode, cigaretteCode, cigaretteName, barcode, (isStockIn && stockRemainQuantity-- > 0) ? "1" : "0");
+                    }
+
+                    pm.Commit();
+                    Logger.Info(string.Format("生成入库计划完成： {0}-{1}-{2}-{3}",channelCode, cigaretteCode, cigaretteName, barcode));                    
                 }
                 catch (Exception ex)
                 {
@@ -167,5 +276,6 @@ namespace THOK.AS.Stocking.StockInProcess
                 }
             }
         }
+    
     }
 }

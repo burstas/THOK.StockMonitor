@@ -51,7 +51,8 @@ namespace THOK.AS.Stocking.StateManageProcess
 
                     if (stateItem.ItemName == "Init")
                     {
-                        foreach (string stateCode in (new ScannerStateManage()).GetStateItemCodeList())
+                        ScannerStateManage scannerStateManage1 = new ScannerStateManage();
+                        foreach (string stateCode in scannerStateManage1.GetStateItemCodeList())
                         {
                             GetStateManage(stateCode);
                         }
@@ -136,7 +137,7 @@ namespace THOK.AS.Stocking.StateManageProcess
             }
             catch (Exception e)
             {
-                Logger.Error("ScannerStateProcess.StateChanged() 处理失败！原因：" + e.Message);
+                Logger.Error("ScannerStateProcess.StateChanged() 处理失败！原因：" + e.Message + e.StackTrace);
             }
         }
     }

@@ -8,56 +8,103 @@ namespace THOK.AS.Stocking.Dao
 {
     public class ChannelDao: BaseDao
     {
-        public void Delete()
-        {
-            ExecuteNonQuery("TRUNCATE TABLE AS_BI_STOCKCHANNEL");
-
-            ExecuteNonQuery("TRUNCATE TABLE AS_SC_STOCKMIXCHANNEL");
-
-            ExecuteQuery("TRUNCATE TABLE AS_SC_CHANNELUSED");
-        }
-
-        public void InsertChannel(DataTable channelTable)
-        {
-            BatchInsert(channelTable, "AS_BI_STOCKCHANNEL");            
-        }
-
-        public void InsertChannelUSED(DataTable channelTable)
-        {            
-            BatchInsert(channelTable, "AS_SC_CHANNELUSED");
-        }
-
-        public void InsertMixChannel(DataTable mixTable)
-        {
-            BatchInsert(mixTable, "AS_SC_STOCKMIXCHANNEL");
-        }
-
+        //~  查询补货烟道信息；
         public DataTable FindAll()
         {
-            string sql = "SELECT CHANNELCODE,CHANNELNAME,"+
-                            " CASE WHEN CHANNELTYPE='3' THEN '混合烟道' ELSE '单一烟道' END CHANNELTYPE,"+
-                            " CIGARETTECODE, CIGARETTENAME "+
-                            " FROM AS_BI_STOCKCHANNEL";
+            string sql = @"SELECT CHANNELCODE,CHANNELNAME,
+                            CASE 
+                                WHEN CHANNELTYPE='1' THEN '拆叠垛缓存烟道'
+                                WHEN CHANNELTYPE='2' THEN '普通单一烟道（补通道机）' 
+                                WHEN CHANNELTYPE='3' THEN '普通单一烟道（补立式机）' 
+                                WHEN CHANNELTYPE='4' THEN '普通混合烟道' 
+                                WHEN CHANNELTYPE='5' THEN '整件混合烟道' 
+                                ELSE '无' 
+                            END CHANNELTYPE,
+                            CIGARETTECODE, CIGARETTENAME 
+                            FROM AS_SC_STOCKCHANNELUSED";
             return ExecuteQuery(sql).Tables[0];
         }
 
-        public string FindLed(string channelCode)
+        //~ 查询所有卷烟拆叠垛通道信息；
+        public DataTable FindChannelForCigaretteCode(bool b1,bool b2)
         {
-            string sql = "SELECT ISNULL(MIN(LEDNO),0) FROM AS_BI_STOCKCHANNEL WHERE CHANNELCODE = '{0}'";
-            return ExecuteScalar(string.Format(sql, channelCode)).ToString();
+            string sql = @"SELECT A.CHANNELCODE,A.CIGARETTECODE,A.CIGARETTENAME,A.ISSTOCKIN,A.REMAINQUANTITY,B.BARCODE,
+                            (
+	                            SELECT COUNT(*) FROM AS_SC_SUPPLY C
+	                            LEFT JOIN AS_SC_CHANNELUSED D
+		                            ON C.ORDERDATE = D.ORDERDATE
+		                            AND C.BATCHNO = D.BATCHNO
+		                            AND C.LINECODE = D.LINECODE
+		                            AND C.CHANNELCODE = D.CHANNELCODE
+	                            WHERE D.CHANNELTYPE != '{0}' AND D.CHANNELTYPE != '{1}' AND C.CIGARETTECODE = A.CIGARETTECODE
+                            ) -
+                            (   
+                                SELECT ISNULL(SUM(INQUANTITY),0) FROM AS_STOCK_IN_BATCH 
+                                WHERE CIGARETTECODE = A.CIGARETTECODE
+                            ) QUANTITY,
+                            (
+                                SELECT COUNT(*) FROM AS_STOCK_IN
+                                WHERE (STOCKOUTID IS NULL OR STOCKOUTID =0) AND STATE =1 AND CHANNELCODE = A.CHANNELCODE
+                            ) QUANTITY_1
+                            FROM AS_SC_STOCKCHANNELUSED A 
+                            LEFT JOIN AS_SC_SUPPLY B 
+                                ON A.CIGARETTECODE = B.CIGARETTECODE
+                            WHERE A.CHANNELTYPE = '1'
+                            GROUP BY A.CHANNELCODE,A.CIGARETTECODE,A.CIGARETTENAME,A.ISSTOCKIN,A.REMAINQUANTITY,B.BARCODE";
+            return ExecuteQuery(string.Format(sql, b1 ? 0 : 5, b2 ? 0 : 2)).Tables[0];
         }
 
-        public DataTable FindChannelForCigaretteCode(string cigaretteCode)
+        //~ 查询卷烟拆叠垛通道信息；
+        public DataTable FindChannelForCigaretteCode(string cigaretteCode,bool b1,bool b2)
         {
-            string sql = "SELECT A.CHANNELCODE,A.CIGARETTECODE,A.CIGARETTENAME,A.ISSTOCKIN,A.REMAINQUANTITY,B.BARCODE "+
-                            " FROM AS_BI_STOCKCHANNEL A " +
-                            " LEFT JOIN AS_SC_SUPPLY B ON A.CIGARETTECODE = B.CIGARETTECODE "+         
-                            " WHERE A.CIGARETTECODE = '{0}' "+
-                            " GROUP BY A.CHANNELCODE,A.CIGARETTECODE,A.CIGARETTENAME,A.IsStockIn,A.REMAINQUANTITY,B.BARCODE";
-            return ExecuteQuery(string.Format(sql, cigaretteCode)).Tables[0];
+            string sql = @"SELECT A.CHANNELCODE,A.CIGARETTECODE,A.CIGARETTENAME,A.ISSTOCKIN,A.REMAINQUANTITY,B.BARCODE,
+                            (
+	                            SELECT COUNT(*) FROM AS_SC_SUPPLY C
+	                            LEFT JOIN AS_SC_CHANNELUSED D
+		                            ON C.ORDERDATE = D.ORDERDATE
+		                            AND C.BATCHNO = D.BATCHNO
+		                            AND C.LINECODE = D.LINECODE
+		                            AND C.CHANNELCODE = D.CHANNELCODE
+	                            WHERE D.CHANNELTYPE != '{0}' AND D.CHANNELTYPE != '{1}' AND C.CIGARETTECODE = A.CIGARETTECODE
+                            ) -
+                            (   
+                                SELECT ISNULL(SUM(INQUANTITY),0) FROM AS_STOCK_IN_BATCH 
+                                WHERE CIGARETTECODE = A.CIGARETTECODE
+                            ) QUANTITY,
+                            (
+                                SELECT COUNT(*) FROM AS_STOCK_IN
+                                WHERE (STOCKOUTID IS NULL OR STOCKOUTID =0) AND STATE =1 AND CHANNELCODE = A.CHANNELCODE
+                            ) QUANTITY_1
+                            FROM AS_SC_STOCKCHANNELUSED A 
+                            LEFT JOIN AS_SC_SUPPLY B 
+                                ON A.CIGARETTECODE = B.CIGARETTECODE
+                            WHERE A.CHANNELTYPE = '1' AND A.CIGARETTECODE = '{2}'
+                            GROUP BY A.CHANNELCODE,A.CIGARETTECODE,A.CIGARETTENAME,A.ISSTOCKIN,A.REMAINQUANTITY,B.BARCODE";
+            return ExecuteQuery(string.Format(sql, b1 ? 0 : 5, b2 ? 0 : 2, cigaretteCode)).Tables[0];
         }
 
-        #region 交换分拣烟道        
+        //~ 动态调整补货烟道；
+        public void ReSetStockChannel(string channelCode, DataRow cigaretteRow)
+        {
+            SqlCreate sqlCreate = new SqlCreate("AS_SC_STOCKCHANNELUSED", SqlType.UPDATE);
+            sqlCreate.AppendQuote("CIGARETTECODE", cigaretteRow["CIGARETTECODE"]);
+            sqlCreate.AppendQuote("CIGARETTENAME", cigaretteRow["CIGARETTENAME"]);
+            sqlCreate.AppendQuote("QUANTITY", cigaretteRow["QUANTITY"]);
+            sqlCreate.AppendQuote("REMAINQUANTITY", cigaretteRow["REMAINQUANTITY"]);
+            sqlCreate.AppendWhere("CHANNELCODE", channelCode);
+            ExecuteNonQuery(sqlCreate.GetSQL());
+        }
+
+        #region 交换分拣烟道    
+    
+        public DataTable FindChannelUSED()
+        {
+            string sql = "SELECT CHANNELCODE, CHANNELNAME, " +
+                            " CASE CHANNELTYPE WHEN '2' THEN '立式机' WHEN '5' THEN '混合烟道' ELSE '通道机' END CHANNELTYPE, " +
+                            " LINECODE, CIGARETTECODE, CIGARETTENAME, QUANTITY " +
+                            " FROM AS_SC_CHANNELUSED ORDER BY LINECODE, CHANNELNAME";
+            return ExecuteQuery(sql).Tables[0];
+        }
        
         public DataTable FindChannelUSED(string lineCode, string channelCode)
         {
@@ -80,15 +127,6 @@ namespace THOK.AS.Stocking.Dao
             string sql = "UPDATE AS_SC_CHANNELUSED SET CIGARETTECODE='{0}', CIGARETTENAME='{1}', QUANTITY={2}, SORTNO={3} "+
                             " WHERE CHANNELCODE='{4}' AND LINECODE = '{5}'";
             ExecuteNonQuery(string.Format(sql,cigaretteCode, cigaretteName, quantity, sortNo, channelCode, lineCode));
-        }
-
-        public DataTable FindChannelUSED()
-        {
-            string sql = "SELECT CHANNELCODE, CHANNELNAME, "+
-                            " CASE CHANNELTYPE WHEN '2' THEN '立式机' WHEN '5' THEN '混合烟道' ELSE '通道机' END CHANNELTYPE, " +
-                            " LINECODE, CIGARETTECODE, CIGARETTENAME, QUANTITY "+
-                            " FROM AS_SC_CHANNELUSED ORDER BY LINECODE, CHANNELNAME";
-            return ExecuteQuery(sql).Tables[0];
         }
 
         #endregion

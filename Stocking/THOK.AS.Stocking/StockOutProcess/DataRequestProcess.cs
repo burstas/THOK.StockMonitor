@@ -26,7 +26,10 @@ namespace THOK.AS.Stocking.StockOutProcess
 
                     try
                     {
-                        DataTable outTable = stockOutDao.FindSupply();
+                        //参数化查询需要叠垛出库的补货计划；
+                        bool b1 = Convert.ToBoolean(Context.Attributes["B1"]);
+                        bool b2 = Convert.ToBoolean(Context.Attributes["B2"]);
+                        DataTable outTable = stockOutDao.FindNoSupplyOrder(b1,b2);
                         DataTable stockInTable = stockInDao.FindStockInForIsInAndNotOut();                        
 
                         if (outTable.Rows.Count > 0)
@@ -34,19 +37,10 @@ namespace THOK.AS.Stocking.StockOutProcess
                             pm.BeginTransaction();
 
                             for (int i = 0; i < outTable.Rows.Count; i++)
-                            {
-                                DataRow[] stockInRows = stockInTable.Select(string.Format("CIGARETTECODE='{0}' AND STATE ='1' AND ( STOCKOUTID IS NULL OR STOCKOUTID = 0 )",
-                                    outTable.Rows[i]["CIGARETTECODE"].ToString()), "STOCKINID");
+                            {                                
+                                WriteToProcess("StockInRequestProcess", "StockInRequest", outTable.Rows[i]["CIGARETTECODE"].ToString());
 
-                                if (stockInRows.Length <= Convert.ToInt32(Context.Attributes["StockInRequestRemainQuantity"]) + 1)
-                                {
-                                    WriteToProcess("StockInRequestProcess", "StockInRequest", outTable.Rows[i]["CIGARETTECODE"].ToString());
-                                }
-                                else if (stockInRows.Length > 0 && stockInRows.Length + Convert.ToInt32(stockInRows[0]["STOCKINQUANTITY"]) <= Convert.ToInt32(Context.Attributes["StockInCapacityQuantity"]) + 1)
-                                {
-                                    WriteToProcess("StockInRequestProcess", "StockInRequest", outTable.Rows[i]["CIGARETTECODE"].ToString());
-                                }
-
+                                DataRow[] stockInRows = stockInTable.Select(string.Format("CIGARETTECODE='{0}' AND STATE ='1' AND ( STOCKOUTID IS NULL OR STOCKOUTID = 0 )", outTable.Rows[i]["CIGARETTECODE"].ToString()), "STOCKINID");
                                 if (stockInRows.Length > 0)
                                 {
                                     stockInRows[0]["STOCKOUTID"] = outTable.Rows[i]["STOCKOUTID"].ToString();

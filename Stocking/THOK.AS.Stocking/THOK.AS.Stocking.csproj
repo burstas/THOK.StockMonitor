@@ -97,9 +97,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Dal\ChannelDal.cs" />
-    <Compile Include="Dal\StockOutDal.cs" />
-    <Compile Include="Dal\StockBatchDal.cs" />
+    <Compile Include="Dal\StockBatchDal.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="Dao\ChannelDao.cs" />
+    <Compile Include="Dao\DownloadDataDao.cs" />
     <Compile Include="Dao\ServerDao.cs" />
     <Compile Include="Dao\StateDao.cs" />
     <Compile Include="Dao\StockOutBatchDao.cs" />
@@ -114,9 +116,6 @@
     <Compile Include="StockInProcess\LEDProcess.cs" />
     <Compile Include="StockInProcess\ScanProcess.cs" />
     <Compile Include="StockInProcess\StockInRequestProcess.cs" />
-    <Compile Include="StockOutProcess\SupplyFirstRequestProcess.cs">
-      <SubType>Code</SubType>
-    </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -128,26 +127,13 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="Report\AS_SC_CHANNELUSED.cs">
-      <DependentUpon>AS_SC_CHANNELUSED.xsd</DependentUpon>
-    </Compile>
-    <Compile Include="Report\AS_SC_CHANNELUSED.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>AS_SC_CHANNELUSED.xsd</DependentUpon>
-    </Compile>
-    <Compile Include="Report\SortChannelReport.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>SortChannelReport.rpt</DependentUpon>
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Include="StateManageProcess\LedStateProcess.cs" />
     <Compile Include="StateManageProcess\Dao\LedStateManage.cs" />
     <Compile Include="StateManageProcess\Dao\OrderDataStateManage.cs" />
     <Compile Include="StateManageProcess\OrderDataStateProcess.cs" />
     <Compile Include="StateManageProcess\Dao\ScannerStateManage.cs" />
     <Compile Include="StockOutProcess\SupplyNextRequestProcess.cs" />
+    <Compile Include="Util\LED2008\StringUtil.cs" />
     <Compile Include="Util\ZebraPrinter\BarCode.cs" />
     <Compile Include="Util\ZebraPrinter\Character.cs" />
     <Compile Include="Util\LED2008\EQ2008_DataStruct.cs" />
@@ -213,18 +199,6 @@
     <Compile Include="View\Dialog\SimulateDialog.Designer.cs">
       <DependentUpon>SimulateDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="View\Form\SortChannelPrintForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="View\Form\SortChannelPrintForm.designer.cs">
-      <DependentUpon>SortChannelPrintForm.cs</DependentUpon>
-    </Compile>
-    <Compile Include="View\Form\StockOutForm.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="View\Form\StockOutForm.Designer.cs">
-      <DependentUpon>StockOutForm.cs</DependentUpon>
-    </Compile>
     <Compile Include="View\Form\StockOutTaskForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -255,10 +229,6 @@
       <SubType>Designer</SubType>
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Report\SortChannelReport.rpt">
-      <Generator>CrystalDecisions.VSDesigner.CodeGen.ReportCodeGenerator</Generator>
-      <LastGenOutput>SortChannelReport.cs</LastGenOutput>
     </EmbeddedResource>
     <EmbeddedResource Include="View\Control\ButtonArea.resx">
       <SubType>Designer</SubType>
@@ -295,14 +265,6 @@
     <EmbeddedResource Include="View\Dialog\SimulateDialog.resx">
       <SubType>Designer</SubType>
       <DependentUpon>SimulateDialog.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="View\Form\SortChannelPrintForm.resx">
-      <DependentUpon>SortChannelPrintForm.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="View\Form\StockOutForm.resx">
-      <SubType>Designer</SubType>
-      <DependentUpon>StockOutForm.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="View\Form\StockOutTaskForm.resx">
       <SubType>Designer</SubType>
@@ -344,17 +306,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Image\Delete.png" />
-    <None Include="Report\AS_SC_CHANNELUSED.xsc">
-      <DependentUpon>AS_SC_CHANNELUSED.xsd</DependentUpon>
-    </None>
-    <None Include="Report\AS_SC_CHANNELUSED.xsd">
-      <SubType>Designer</SubType>
-      <Generator>MSDataSetGenerator</Generator>
-      <LastGenOutput>AS_SC_CHANNELUSED.Designer.cs</LastGenOutput>
-    </None>
-    <None Include="Report\AS_SC_CHANNELUSED.xss">
-      <DependentUpon>AS_SC_CHANNELUSED.xsd</DependentUpon>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <Service Include="{967B4E0D-AD0C-4609-AB67-0FA40C0206D8}" />

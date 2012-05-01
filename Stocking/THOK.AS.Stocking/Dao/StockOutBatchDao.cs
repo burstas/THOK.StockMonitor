@@ -8,43 +8,24 @@ namespace THOK.AS.Stocking.Dao
 {
     public class StockOutBatchDao: BaseDao
     {
-        public void Delete()
-        {
-            string sql = "TRUNCATE TABLE AS_STOCK_OUT_BATCH";
-            ExecuteNonQuery(sql);
-        }
-
         public DataTable FindAll()
         {
-            string sql = "SELECT A.BATCHNO,"+
-                            " CASE WHEN A.LINECODE='00' THEN '全部' ELSE A.LINECODE END LINECODE," +
-                            " A.QUANTITY, A.OUTQUANTITY,B.ORDERDATE,B.BATCHNO SORTBATCHNO"+
-                            " FROM AS_STOCK_OUT_BATCH A" +
-                            " LEFT JOIN AS_SC_SUPPLY B ON A.SORTNO = B.SORTNO "+
-                            " GROUP BY A.BATCHNO,A.LINECODE,A.QUANTITY, A.OUTQUANTITY,B.ORDERDATE,B.BATCHNO";
+            //todo
+            string sql = @"SELECT A.BATCHNO,CASE WHEN A.LINECODE='00' THEN '全部' ELSE A.LINECODE END LINECODE,
+                            A.QUANTITY, A.OUTQUANTITY,B.ORDERDATE,B.BATCHNO SORTBATCHNO
+                            FROM AS_STOCK_OUT_BATCH A
+                            LEFT JOIN AS_SC_SUPPLY B ON A.SORTNO = B.SORTNO 
+                            GROUP BY A.BATCHNO,A.LINECODE,A.QUANTITY, A.OUTQUANTITY,B.ORDERDATE,B.BATCHNO";
             return ExecuteQuery(sql).Tables[0];
         }
 
-        public DataTable FindBatch()
+        //~ 查询当前最大补货批次；
+        internal int FindMaxBatchNo()
         {
-            string sql = "SELECT  * FROM AS_STOCK_OUT_BATCH WHERE QUANTITY > OUTQUANTITY ORDER BY BATCHNO";
-            return ExecuteQuery(sql).Tables[0];
+            return Convert.ToInt32(ExecuteScalar("SELECT ISNULL(MAX(BATCHNO),0) FROM AS_STOCK_OUT_BATCH "));
         }
 
-        public void UpdateBatch(string batchNo, int quantity)
-        {
-            string sql = "UPDATE AS_STOCK_OUT_BATCH SET OUTQUANTITY = OUTQUANTITY + {0} WHERE BATCHNO = {1}";
-            ExecuteNonQuery(string.Format(sql, quantity, batchNo));
-        }
-
-        //zys_2011-10-06
-        public int FindMaxBatchNo()
-        {
-            string sql = "SELECT ISNULL(MAX(BATCHNO),0) FROM AS_STOCK_OUT_BATCH ";
-            return Convert.ToInt32(ExecuteScalar(sql));
-        }
-
-        //zys_2011-10-06
+        //~ 生成补货批次；
         internal void InsertBatch(int batchNo, string lineCode, string channelGroup, string channelType, int sortNo, int quantity)
         {
             SqlCreate sqlCreate = new SqlCreate("AS_STOCK_OUT_BATCH", SqlType.INSERT);

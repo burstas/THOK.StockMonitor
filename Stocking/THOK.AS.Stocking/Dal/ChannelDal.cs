@@ -19,6 +19,15 @@ namespace THOK.AS.Stocking.Dal
         }
 
         #region ½»»»·Ö¼ðÑÌµÀ      
+
+        internal DataTable GetChannelUSED()
+        {
+            using (PersistentManager pm = new PersistentManager())
+            {
+                ChannelDao channelDao = new ChannelDao();
+                return channelDao.FindChannelUSED();
+            }
+        }
         
         internal DataTable GetChannelUSED(string lineCode, string channelCode)
         {
@@ -38,7 +47,7 @@ namespace THOK.AS.Stocking.Dal
             }
         }
 
-        public void ExechangeChannelUSED(string lineCode, string sourceChannel, string targetChannel)
+        internal void ExechangeChannelUSED(string lineCode, string sourceChannel, string targetChannel)
         {
             using (PersistentManager pm = new PersistentManager())
             {
@@ -74,16 +83,7 @@ namespace THOK.AS.Stocking.Dal
                     pm.Rollback();
                 }
             }
-        }
-
-        public DataTable GetChannelUSED()
-        {
-            using (PersistentManager pm = new PersistentManager())
-            {
-                ChannelDao channelDao = new ChannelDao();
-                return channelDao.FindChannelUSED();
-            }
-        }
+        }        
 
         #endregion
     }

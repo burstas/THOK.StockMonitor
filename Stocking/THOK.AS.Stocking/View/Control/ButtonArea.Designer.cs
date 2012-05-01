@@ -40,7 +40,6 @@
             this.btnStart = new System.Windows.Forms.Button();
             this.btnUpload = new System.Windows.Forms.Button();
             this.btnDownload = new System.Windows.Forms.Button();
-            this.timer1 = new System.Windows.Forms.Timer(this.components);
             this.pnlButton.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -213,11 +212,6 @@
             this.btnDownload.UseVisualStyleBackColor = true;
             this.btnDownload.Click += new System.EventHandler(this.btnDownload_Click);
             // 
-            // timer1
-            // 
-            this.timer1.Interval = 300000;
-            this.timer1.Tick += new System.EventHandler(this.timer1_Tick);
-            // 
             // ButtonArea
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
@@ -242,6 +236,5 @@
         private System.Windows.Forms.Button btnOperate;
         private System.Windows.Forms.Button btnHelp;
         private System.Windows.Forms.Button btnExit;
-        private System.Windows.Forms.Timer timer1;
     }
 }

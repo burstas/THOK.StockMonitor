@@ -55,10 +55,10 @@ namespace THOK.AS.Stocking.View
         }
 
         private void btnDownload_Click(object sender, EventArgs e)
-        {
-            DownloadData();
+        {            
             try
             {
+                DownloadData();
                 Context.ProcessDispatcher.WriteToProcess("LEDProcess", "Refresh", null);
                 Context.ProcessDispatcher.WriteToProcess("LedStateProcess", "Refresh", null);
             }
@@ -85,7 +85,6 @@ namespace THOK.AS.Stocking.View
                 Context.ProcessDispatcher.WriteToProcess("LEDProcess", "Refresh", null);
                 Context.ProcessDispatcher.WriteToProcess("LedStateProcess", "Refresh", null);
                 SwitchStatus(true);
-                timer1.Enabled = true;
             }
             catch (Exception ex)
             {
@@ -98,7 +97,6 @@ namespace THOK.AS.Stocking.View
         {
             Context.ProcessDispatcher.WriteToProcess("OrderDataStateProcess", "Stop", null);
             SwitchStatus(false);
-            timer1.Enabled = false;
         }
 
         private void btnHelp_Click(object sender, EventArgs e)
@@ -115,21 +113,9 @@ namespace THOK.AS.Stocking.View
             btnSimulate.Enabled = !isStart;
         }
 
+        //不可用；
         private void btnSimulate_Click(object sender, EventArgs e)
         {
-            try
-            {
-                using (PersistentManager pm = new PersistentManager())
-                {
-                    StockOutDao stockOutDao = new StockOutDao();
-                    stockOutDao.ClearNoScanData();
-                    Context.ProcessDispatcher.WriteToService("StockPLC_01", "RestartData", 1);
-                }
-            }
-            catch (Exception ee)
-            {
-                Logger.Error("清除PLC未扫码件烟信息处理失败，原因：" + ee.Message);
-            }
         }
 
         /// <summary>
@@ -141,11 +127,8 @@ namespace THOK.AS.Stocking.View
             {
                 using (PersistentManager pm = new PersistentManager())
                 {
-                    ChannelDao channelDao = new ChannelDao();
-                    StockOutBatchDao stockOutBatchDao = new StockOutBatchDao();
-                    StockInBatchDao stockInBatchDao = new StockInBatchDao();                    
+                    DownloadDataDao downloadDataDao = new DownloadDataDao();
                     StockOutDao stockOutDao = new StockOutDao();
-                    StockInDao stockInDao = new StockInDao();
                     SupplyDao supplyDao = new SupplyDao();
 
                     if (supplyDao.FindCount() != stockOutDao.FindOutQuantity())
@@ -160,45 +143,32 @@ namespace THOK.AS.Stocking.View
                         //ORDER BY ORDERDATE,BATCHNO  查找第一批次（符合已优化，并已上传一号工程，未下载的批次）
                         DataTable table = serverDao.FindBatch();
                         if (table.Rows.Count != 0)
-                        {
-                            using (PersistentManager pmWES = new PersistentManager("WESConnection"))
-                            {
-                                StockInBatchDao stockInBatchDaoWES = new StockInBatchDao();
-                                stockInBatchDaoWES.SetPersistentManager(pmWES);
-                                stockInBatchDaoWES.Delete();
-                            }
-                            
+                        {                           
                             string batchID = table.Rows[0]["BATCHID"].ToString();
                             string orderDate = table.Rows[0]["ORDERDATE"].ToString();
                             string batchNo = table.Rows[0]["BATCHNO"].ToString();
 
+                            //Clear
                             Context.ProcessDispatcher.WriteToProcess("monitorView", "ProgressState", new ProgressState("清空作业表", 5, 1));
-                            channelDao.Delete();                            
-                            stockOutBatchDao.Delete();
-                            stockOutDao.Delete();
-                            stockInBatchDao.Delete();
-                            stockInDao.Delete();
-                            supplyDao.Delete();
+                            downloadDataDao.Clear();
                             System.Threading.Thread.Sleep(100);
 
+                            //AS_SC_STOCKCHANNEL
                             Context.ProcessDispatcher.WriteToProcess("monitorView", "ProgressState", new ProgressState("下载补货烟道表", 5, 2));
-                            table = serverDao.FindStockChannel(orderDate, batchNo);
-                            channelDao.InsertChannel(table);
+                            downloadDataDao.InsertStockChannel(serverDao.FindStockChannel(orderDate, batchNo));
                             System.Threading.Thread.Sleep(100);
 
+                            //AS_SC_STOCKMIXCHANNEL
                             Context.ProcessDispatcher.WriteToProcess("monitorView", "ProgressState", new ProgressState("下载补货混合烟道表", 5, 3));
-                            table = serverDao.FindMixChannel(orderDate, batchNo);
-                            channelDao.InsertMixChannel(table);
+                            downloadDataDao.InsertStockMixChannel(serverDao.FindStockMixChannel(orderDate, batchNo));
                             System.Threading.Thread.Sleep(100);
-
+                            //AS_SC_CHANNELUSED
                             Context.ProcessDispatcher.WriteToProcess("monitorView", "ProgressState", new ProgressState("下载分拣烟道表", 5, 4));
-                            table = serverDao.FindChannelUSED(orderDate, batchNo);
-                            channelDao.InsertChannelUSED(table);
+                            downloadDataDao.InsertChannelUSED(serverDao.FindChannelUSED(orderDate, batchNo));
                             System.Threading.Thread.Sleep(100);
-
+                            //AS_SC_SUPPLY
                             Context.ProcessDispatcher.WriteToProcess("monitorView", "ProgressState", new ProgressState("下载补货计划表", 5, 5));
-                            table = serverDao.FindSupply(orderDate, batchNo);
-                            supplyDao.Insert(table);
+                            downloadDataDao.InsertSupply(serverDao.FindSupply(orderDate, batchNo));
                             System.Threading.Thread.Sleep(100);
 
                             serverDao.UpdateBatchStatus(batchID);
@@ -207,20 +177,14 @@ namespace THOK.AS.Stocking.View
 
                             //初始化PLC数据（叠垛线PLC，补货线PLC）
                             Context.ProcessDispatcher.WriteToService("StockPLC_01", "RestartData", 3);
-                            Context.ProcessDispatcher.WriteToService("StockPLC_02", "RestartData", 1);
-
                             //初始化入库扫码器
                             Context.ProcessDispatcher.WriteToProcess("ScanProcess", "Init", null);
-
                             //初始化状态管理器
                             Context.ProcessDispatcher.WriteToProcess("LedStateProcess", "Init", null);
                             Context.ProcessDispatcher.WriteToProcess("OrderDataStateProcess", "Init", null);
                             Context.ProcessDispatcher.WriteToProcess("ScannerStateProcess", "Init", null);
-
                             //生成入库请求任务数据
-                            Context.ProcessDispatcher.WriteToProcess("StockInRequestProcess", "FirstBatch", null);
-                            //生成补货请求任务数据
-                            //Context.ProcessDispatcher.WriteToProcess("SupplyFirstRequestProcess", "FirstBatch", null);                   
+                            Context.ProcessDispatcher.WriteToProcess("StockInRequestProcess", "FirstBatch", null);               
                         }
                         else
                             MessageBox.Show("没有补货计划数据！", "消息", MessageBoxButtons.OK, MessageBoxIcon.Information);
@@ -233,34 +197,8 @@ namespace THOK.AS.Stocking.View
             }
         }
 
-        private void timer1_Tick(object sender, EventArgs e)
-        {
-            using (PersistentManager pm = new PersistentManager())
-            {
-                SupplyDao supplyDao = new SupplyDao();     
-                StockInDao stockInDao = new StockInDao();
-
-                DataTable cigaretteTable = supplyDao.FindCigarette();
-                DataTable stockInTable = stockInDao.FindStockInForIsInAndNotOut();
-
-                foreach (DataRow row in cigaretteTable.Rows)
-                {
-                    DataRow[] stockInRows = stockInTable.Select(string.Format("CIGARETTECODE='{0}' AND STATE ='1' AND ( STOCKOUTID IS NULL OR STOCKOUTID = 0 )", row["CIGARETTECODE"].ToString()), "STOCKINID");
-
-                    if (stockInRows.Length <= Convert.ToInt32(Context.Attributes["StockInRequestRemainQuantity"]) )
-                    {
-                        Context.ProcessDispatcher.WriteToProcess("StockInRequestProcess", "StockInRequest", row["CIGARETTECODE"].ToString());
-                    }
-                    else if (stockInRows.Length > 0 && stockInRows.Length + Convert.ToInt32(stockInRows[0]["STOCKINQUANTITY"]) <= 30 )
-                    {
-                        Context.ProcessDispatcher.WriteToProcess("StockInRequestProcess", "StockInRequest", row["CIGARETTECODE"].ToString());
-                    }
-                }
-            }
-        }
-
-
         public delegate void ProcessStateInMainThread(StateItem stateItem);
+
         private void ProcessState(StateItem stateItem)
         {
             switch (stateItem.ItemName)
@@ -335,5 +273,6 @@ namespace THOK.AS.Stocking.View
             base.Process(stateItem);
             this.BeginInvoke(new ProcessStateInMainThread(ProcessState), stateItem);
         }
+
     }
 }

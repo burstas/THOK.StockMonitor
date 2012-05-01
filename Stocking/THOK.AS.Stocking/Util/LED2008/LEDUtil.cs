@@ -47,7 +47,14 @@ namespace THOK.AS.Stocking.Util.LED2008
             {
                 foreach (DataRow row in table.Rows)
                 {
-                    leds.AddTextToProgram(cardNum, 0, (i - 1) * 16, 16, 128, row["QUANTITY"].ToString() + "-" + row["CIGARETTENAME"].ToString(),i == 1 ? LED2008.GREEN : LED2008.RED, false);
+                    string cigaretteName = row["CIGARETTENAME"].ToString().Trim();
+                    cigaretteName = cigaretteName.Replace("(", StringUtil.ToSBC(""));
+                    cigaretteName = cigaretteName.Replace(")", StringUtil.ToSBC(""));
+                    cigaretteName = cigaretteName.Replace("£®", StringUtil.ToSBC(""));
+                    cigaretteName = cigaretteName.Replace("£©", StringUtil.ToSBC(""));
+                    cigaretteName = cigaretteName.Replace(" ", "");
+                    cigaretteName = cigaretteName.Replace("  ", "");
+                    leds.AddTextToProgram(cardNum, 0, (i - 1) * 16, 16, 128, row["QUANTITY"].ToString() + "-" + cigaretteName.ToString(), i == 1 ? LED2008.GREEN : LED2008.RED, false);
                     i++;
                 }
             }
@@ -59,7 +66,7 @@ namespace THOK.AS.Stocking.Util.LED2008
             leds.SendToScreen();
         }
 
-        public void RefreshStockInLED( string ledNo,string cigaretteName )
+        public void RefreshStockInLED( string ledNo,string cigaretteName)
         {
             int cardNum = Convert.ToInt32(ledNo);
 
@@ -67,13 +74,18 @@ namespace THOK.AS.Stocking.Util.LED2008
             {
                 return;
             }
-
+            cigaretteName = cigaretteName.Replace("(", StringUtil.ToSBC(""));
+            cigaretteName = cigaretteName.Replace(")", StringUtil.ToSBC(""));
+            cigaretteName = cigaretteName.Replace("£®", StringUtil.ToSBC(""));
+            cigaretteName = cigaretteName.Replace("£©", StringUtil.ToSBC(""));
+            cigaretteName = cigaretteName.Replace(" ", "");
+            cigaretteName = cigaretteName.Replace("  ", "");
             int i = 1;
             leds.DelAllProgram();
 
-            leds.AddTextToProgram(cardNum, 0, (i - 1) * 16, 16, 128, "»±—ÃÃ·–—,«Î»Îø‚£∫", LED2008.RED , false);
+            leds.AddTextToProgram(cardNum, 0, (i - 1) * 16, 16, 128, "»±—ÃÃ·–—,«Î»Îø‚£∫", LED2008.RED, false);
             i++;
-            leds.AddTextToProgram(cardNum, 0, (i - 1) * 16, 16, 128, cigaretteName, LED2008.GREEN, false);
+            leds.AddTextToProgram(cardNum, 0, (i - 1) * 16, 16, 128, cigaretteName.ToString(), LED2008.GREEN, false);
 
             leds.SendToScreen();
         }
@@ -109,7 +121,14 @@ namespace THOK.AS.Stocking.Util.LED2008
                     {
                         foreach (LedItem item in ledItems)
                         {
-                            leds.AddTextToProgram(ledno, 0, (i - 1) * 16, 16, 128, item.ToString(), i == 1 ? LED2008.GREEN : LED2008.RED, false);
+                            string  cigaretteName = item.ToString();
+                            cigaretteName = cigaretteName.Replace("(", StringUtil.ToSBC(""));
+                            cigaretteName = cigaretteName.Replace(")", StringUtil.ToSBC(""));
+                            cigaretteName = cigaretteName.Replace("£®", StringUtil.ToSBC(""));
+                            cigaretteName = cigaretteName.Replace("£©", StringUtil.ToSBC(""));
+                            cigaretteName = cigaretteName.Replace(" ", "");
+                            cigaretteName = cigaretteName.Replace("  ", "");
+                            leds.AddTextToProgram(ledno, 0, (i - 1) * 16, 16, 128, cigaretteName.ToString(), i == 1 ? LED2008.GREEN : LED2008.RED, false);
                             i++;
                         }
                     }

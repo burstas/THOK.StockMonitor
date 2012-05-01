@@ -8,14 +8,10 @@
 	  <Menu Name="入库任务查询" Type="THOK.AS.Stocking.View.StockInTaskForm,THOK.AS.Stocking.dll"/>
 	  <Menu Name="入库明细查询" Type="THOK.AS.Stocking.View.StockInForm,THOK.AS.Stocking.dll"/>
 	  <Menu Name="补货任务查询" Type="THOK.AS.Stocking.View.StockOutTaskForm,THOK.AS.Stocking.dll"/>
-	  <Menu Name="补货明细查询" Type="THOK.AS.Stocking.View.StockOutForm,THOK.AS.Stocking.dll"/>	  
 	  <Menu Name="订单状态查询" Type="THOK.AS.Stocking.View.OrderStateForm,THOK.AS.Stocking.dll"/>
       <Menu Name="补货烟道查询" Type="THOK.AS.Stocking.View.ChannelForm,THOK.AS.Stocking.dll"/>
       <Menu Name="分拣烟道查询" Type="THOK.AS.Stocking.View.ChannelQueryForm,THOK.AS.Stocking.dll"/>    
   </Menus>
-	  <Menus Name="打印">
-		  <Menu Name="补货明细打印" Type="THOK.AS.Stocking.View.SortChannelPrintForm,THOK.AS.Stocking.dll"/>
-	  </Menus>
   <Menus Name="系统">
     <Menu Name="参数设置" Type="THOK.AS.Stocking.View.ParameterForm,THOK.AS.Stocking.dll"/>
   </Menus>

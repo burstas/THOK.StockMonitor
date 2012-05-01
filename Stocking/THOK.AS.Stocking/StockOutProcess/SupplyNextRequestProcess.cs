@@ -36,7 +36,7 @@ namespace THOK.AS.Stocking.StockOutProcess
                 {
                     WriteToProcess("LedStateProcess", "Refresh", null);
                     WriteToProcess("ScannerStateProcess", "Refresh", null);
-                    dispatcher.WriteToProcess("DataRequestProcess", "SupplyRequest", 1);
+                    WriteToProcess("DataRequestProcess", "SupplyRequest", 1);
                 }
             }
             catch (Exception e)

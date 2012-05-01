@@ -125,7 +125,7 @@ namespace THOK.AS.Stocking.Util.LED2008
 
                 Text.MoveSet.bClear = false;
                 Text.MoveSet.iActionSpeed = 0;
-                Text.MoveSet.iActionType = 20;
+                Text.MoveSet.iActionType = 2;
                 Text.MoveSet.iHoldTime = 50;
 
                 if (!isMove)

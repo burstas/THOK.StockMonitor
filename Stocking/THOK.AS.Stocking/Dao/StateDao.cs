@@ -39,6 +39,8 @@ namespace THOK.AS.Stocking.Dao
         {
             string sql = string.Format(@"SELECT ROW_INDEX,LINECODE,STOCKOUTID,CIGARETTECODE,CIGARETTENAME,CHANNELCODE,SORTCHANNELCODE,CHANNELNAME,
                             CASE CHANNELTYPE 
+                                WHEN '5' THEN '混合立式机'
+                                WHEN '4' THEN '混合通道机'
                                 WHEN '3' THEN '通道机'
                                 WHEN '2' THEN '立式机'
                                 END CHANNELTYPENAME,
@@ -47,7 +49,7 @@ namespace THOK.AS.Stocking.Dao
                                 WHEN ROW_INDEX = {0} THEN '已扫描'
                                 WHEN ROW_INDEX > {0} THEN '未扫描'
                                 END STATE
-                            FROM {1} ",indexNo,viewName);
+                            FROM {1} ", indexNo,viewName);
             return ExecuteQuery(sql).Tables[0];
         } 
        #endregion
@@ -83,6 +85,8 @@ namespace THOK.AS.Stocking.Dao
         {
             string sql = string.Format(@"SELECT ROW_INDEX,LINECODE,STOCKOUTID,CIGARETTECODE,CIGARETTENAME,CHANNELCODE,SORTCHANNELCODE,CHANNELNAME,
                             CASE CHANNELTYPE 
+                                WHEN '5' THEN '混合立式机'
+                                WHEN '4' THEN '混合通道机'
                                 WHEN '3' THEN '通道机'
                                 WHEN '2' THEN '立式机'
                                 END CHANNELTYPENAME,
@@ -91,7 +95,7 @@ namespace THOK.AS.Stocking.Dao
                                 WHEN ROW_INDEX = {0} THEN '已通过'
                                 WHEN ROW_INDEX > {0} THEN '未通过'
                                 END STATE
-                            FROM {1} ",indexNo,viewName);
+                            FROM {1} ", indexNo,viewName);
             return ExecuteQuery(sql).Tables[0];
         }
 
@@ -129,6 +133,8 @@ namespace THOK.AS.Stocking.Dao
         {
             string sql = string.Format(@"SELECT ROW_INDEX,LINECODE,STOCKOUTID,CIGARETTECODE,CIGARETTENAME,CHANNELCODE,SORTCHANNELCODE,CHANNELNAME,
                             CASE CHANNELTYPE 
+                                WHEN '5' THEN '混合立式机'
+                                WHEN '4' THEN '混合通道机'
                                 WHEN '3' THEN '通道机'
                                 WHEN '2' THEN '立式机'
                                 END CHANNELTYPENAME,

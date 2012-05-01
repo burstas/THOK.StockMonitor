@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <Connections>
   <Connection Name="DefaultConnection" DatabaseType="SQLSERVER">
-    <ConnectionString Value="server=DELL-PC\SQLEXPRESS;database=StockDB;uid=sa;" />
+    <ConnectionString Value="server=.;database=StockDB;uid=sa;" />
     <Password Name="password" Value="65CED0851FFD283F" />
   </Connection>
   <Connection Name="ServerConnection" DatabaseType="SQLSERVER">
