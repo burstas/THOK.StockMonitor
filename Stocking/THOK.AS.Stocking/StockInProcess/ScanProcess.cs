@@ -207,7 +207,6 @@ namespace THOK.AS.Stocking.StockInProcess
             if (barcode.Length == 32)
             {
                 barcode = barcode.Substring(2, 6);
-                Logger.Info(barcode);
             }
 
             if (barcode.Length != 6)
@@ -217,6 +216,8 @@ namespace THOK.AS.Stocking.StockInProcess
                 Logger.Error(text);
                 return;
             }
+
+            Logger.Info(barcode);
 
             using (PersistentManager pm = new PersistentManager())
             {
