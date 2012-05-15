@@ -51,8 +51,7 @@ namespace THOK.AS.Stocking.StateManageProcess
 
                     if (stateItem.ItemName == "Init")
                     {
-                        ScannerStateManage scannerStateManage1 = new ScannerStateManage();
-                        foreach (string stateCode in scannerStateManage1.GetStateItemCodeList())
+                        foreach (string stateCode in (new ScannerStateManage()).GetStateItemCodeList())
                         {
                             GetStateManage(stateCode);
                         }

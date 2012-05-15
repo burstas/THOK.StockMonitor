@@ -147,6 +147,7 @@ namespace THOK.AS.Stocking.View
                             string batchID = table.Rows[0]["BATCHID"].ToString();
                             string orderDate = table.Rows[0]["ORDERDATE"].ToString();
                             string batchNo = table.Rows[0]["BATCHNO"].ToString();
+                            string totalQuantity = supplyDao.FindCount().ToString();
 
                             //Clear
                             Context.ProcessDispatcher.WriteToProcess("monitorView", "ProgressState", new ProgressState("清空作业表", 5, 1));
@@ -172,8 +173,10 @@ namespace THOK.AS.Stocking.View
                             System.Threading.Thread.Sleep(100);
 
                             serverDao.UpdateBatchStatus(batchID);
-                            Context.ProcessDispatcher.WriteToProcess("monitorView", "ProgressState", new ProgressState()); 
-                            Logger.Info("数据下载完成");
+                            Context.ProcessDispatcher.WriteToProcess("monitorView", "ProgressState", new ProgressState());
+
+                            string dataAndTip = "数据下载完成，订单日期：[{0}],批次号：[{1}],总数量：[{2}]";
+                            Logger.Info(string.Format(dataAndTip,orderDate,batchNo,totalQuantity));
 
                             //初始化PLC数据（叠垛线PLC，补货线PLC）
                             Context.ProcessDispatcher.WriteToService("StockPLC_01", "RestartData", 3);
