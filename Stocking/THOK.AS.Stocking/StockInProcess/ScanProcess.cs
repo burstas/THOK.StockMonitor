@@ -352,6 +352,7 @@ namespace THOK.AS.Stocking.StockInProcess
                         {
                             scannerParameters.SetParameter(scannerCode, "Barcode", "");
                             scannerParameters.SetParameter(scannerCode, "Quantity", Convert.ToInt32(Context.Attributes["StockInStackQuantity"]));
+                            WriteToProcess("DataRequestProcess", "StockInRequest", 1);
                         }
                         
                         WriteToProcess("LEDProcess", "Refresh", null);

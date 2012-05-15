@@ -11,6 +11,7 @@ namespace THOK.AS.Stocking.StockInProcess
 {
     class StockInRequestProcess : AbstractProcess
     {
+        private static string strLock = string.Empty;
         protected override void StateChanged(StateItem stateItem, IProcessDispatcher dispatcher)
         {
             /*  处理事项：
@@ -25,25 +26,28 @@ namespace THOK.AS.Stocking.StockInProcess
             string cigaretteCode = "";
             try
             {
-                switch (stateItem.ItemName)
+                lock (strLock)
                 {
-                    case "Init":
-                        break;
-                    case "FirstBatch":
-                        if (AddFirstBatch())
-                        {
-                            WriteToProcess("LEDProcess", "Refresh", null);
-                        }
-                        break;
-                    case "StockInRequest":                        
-                        cigaretteCode = Convert.ToString(stateItem.State);
-                        if (Request(cigaretteCode) || RequestAll())
-                        {
-                            WriteToProcess("LEDProcess", "Refresh", null);
-                        }
-                        break;
-                    default:
-                        break;
+                    switch (stateItem.ItemName)
+                    {
+                        case "Init":
+                            break;
+                        case "FirstBatch":
+                            if (AddFirstBatch())
+                            {
+                                WriteToProcess("LEDProcess", "Refresh", null);
+                            }
+                            break;
+                        case "StockInRequest":
+                            cigaretteCode = Convert.ToString(stateItem.State);
+                            if (Request(cigaretteCode) || RequestAll())
+                            {
+                                WriteToProcess("LEDProcess", "Refresh", null);
+                            }
+                            break;
+                        default:
+                            break;
+                    }
                 }
             }
             catch (Exception e)

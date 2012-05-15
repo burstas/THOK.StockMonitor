@@ -113,9 +113,9 @@ namespace THOK.AS.Stocking.View
             btnSimulate.Enabled = !isStart;
         }
 
-        //≤ªø…”√£ª
         private void btnSimulate_Click(object sender, EventArgs e)
         {
+            Context.ProcessDispatcher.WriteToProcess("DataRequestProcess", "StockInRequest", 1);
         }
 
         /// <summary>
