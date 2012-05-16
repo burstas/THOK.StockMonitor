@@ -207,7 +207,6 @@ namespace THOK.AS.Stocking.StockInProcess
             if (barcode.Length == 32)
             {
                 barcode = barcode.Substring(2, 6);
-                Logger.Info(barcode);
             }
 
             if (barcode.Length != 6)
@@ -217,6 +216,8 @@ namespace THOK.AS.Stocking.StockInProcess
                 Logger.Error(text);
                 return;
             }
+
+            Logger.Info(barcode);
 
             using (PersistentManager pm = new PersistentManager())
             {
@@ -256,15 +257,18 @@ namespace THOK.AS.Stocking.StockInProcess
                         if (stockInTable.Rows.Count != 0)
                         {
                             string text = string.Format("当前计划入库卷烟品牌为‘{0}’，是否强制更换其他品牌！是请点击‘Yes’否则请点击‘No’", stockInTable.Rows[0]["CIGARETTENAME"]);
+                            Logger.Info(text);
                             if (DialogResult.Yes == MessageBox.Show(Application.OpenForms["MainForm"],text, "询问", MessageBoxButtons.YesNo, MessageBoxIcon.Question))
                             {
-                                //强行更换品牌。                          
+                                //强行更换品牌。
+                                string tmpCigaretteName = stockInTable.Rows[0]["CIGARETTENAME"].ToString();
                                 stockInBatch.UpdateState(stockInTable.Rows[0]["BATCHNO"].ToString());
 
                                 stockInTable = stockInDao.FindCigarette(barcode);
 
                                 scannerParameters.SetParameter(scannerCode, "Barcode", "");
                                 scannerParameters.SetParameter(scannerCode, "Quantity", Convert.ToInt32(Context.Attributes["StockInStackQuantity"]));
+                                Logger.Info(string.Format("将 {0} 强制更换品牌为 {1} ！",tmpCigaretteName,stockInTable.Rows[0]["CIGARETTENAME"]));
                             }
                             else
                             {
@@ -355,6 +359,7 @@ namespace THOK.AS.Stocking.StockInProcess
                         {
                             scannerParameters.SetParameter(scannerCode, "Barcode", "");
                             scannerParameters.SetParameter(scannerCode, "Quantity", Convert.ToInt32(Context.Attributes["StockInStackQuantity"]));
+                            WriteToProcess("DataRequestProcess", "StockInRequest", 1);
                         }
                         
                         WriteToProcess("LEDProcess", "Refresh", null);
