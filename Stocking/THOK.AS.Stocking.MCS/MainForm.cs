@@ -10,6 +10,7 @@ using Microsoft.Win32;
 using System.Threading;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using System.Diagnostics;
 
 namespace THOK.AS.Stocking.MCS
 {
@@ -68,7 +69,10 @@ namespace THOK.AS.Stocking.MCS
 
         private void MainForm_FormClosed(object sender, FormClosedEventArgs e)
         {
-            context.Release();
+            if (context != null)
+            {
+                context.Release();
+            }
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
@@ -88,12 +92,15 @@ namespace THOK.AS.Stocking.MCS
             {
                 Logger.OnLog += new LogEventHandler(Logger_OnLog);
 
-                context = new Context();
+                if (Init())
+                {
+                    context = new Context();
 
-                ContextInitialize initialize = new ContextInitialize();
-                context.RegisterProcessControl(buttonArea);
-                initialize.InitializeContext(context);
-                context.RegisterProcessControl(monitorView);
+                    ContextInitialize initialize = new ContextInitialize();
+                    context.RegisterProcessControl(buttonArea);
+                    initialize.InitializeContext(context);
+                    context.RegisterProcessControl(monitorView);
+                }
 
                 //context.Processes["DynamicShowProcess"].Resume();
             }
@@ -102,6 +109,22 @@ namespace THOK.AS.Stocking.MCS
                 Logger.Error("初始化处理失败请检查配置，原因：" + ee.Message);
             }
         }
+
+        #region  补货程序运行控制只允许一个进程运行。
+        string appName = "THOK.AS.Stocking.MCS";
+        private bool Init() 
+        {
+            if (System.Diagnostics.Process.GetProcessesByName(appName).Length > 1)
+            {
+                if (MessageBox.Show("程序已启动，将自动退出本程序！", appName, MessageBoxButtons.OK).ToString() == "OK")
+                {
+                    Application.Exit();
+                    return false;
+                }
+            }
+            return true;
+        }
+        #endregion
 
         #region  程序运行控制只允许一个进程运行。
 
@@ -177,5 +200,6 @@ namespace THOK.AS.Stocking.MCS
             }
         }
         #endregion
+
     }
 }
