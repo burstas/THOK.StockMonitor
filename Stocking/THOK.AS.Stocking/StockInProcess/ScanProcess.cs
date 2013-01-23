@@ -332,7 +332,10 @@ namespace THOK.AS.Stocking.StockInProcess
                             stockInBatch.UpdateState(stockInTable.Rows[0]["BATCHNO"].ToString());                            
                         }
                         pm.Commit();
-
+                        if (change == 1)
+                        {
+                            WriteToProcess("DataRequestProcess", "StockInRequest", 1);
+                        }
                         //更新扫码器参数信息
                         if (pBarcode == barcode)
                         {
@@ -362,6 +365,7 @@ namespace THOK.AS.Stocking.StockInProcess
                         WriteToProcess("LEDProcess", "Refresh", null);
                         Logger.Info(string.Format(scannerCode + "号条码扫描，写分流数据，卷烟名称:{0}，目标:{1} ！", stockInTable.Rows[0]["CIGARETTENAME"], Convert.ToInt32(stockInTable.Rows[0]["CHANNELCODE"].ToString())));
                     }
+
                     return;
                 }
             }
