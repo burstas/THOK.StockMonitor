@@ -37,7 +37,7 @@ namespace THOK.AS.Stocking.StockOutProcess
                             pm.BeginTransaction();
 
                             for (int i = 0; i < outTable.Rows.Count; i++)
-                            {                                
+                            {
                                 WriteToProcess("StockInRequestProcess", "StockInRequest", outTable.Rows[i]["CIGARETTECODE"].ToString());
 
                                 DataRow[] stockInRows = stockInTable.Select(string.Format("CIGARETTECODE='{0}' AND STATE ='1' AND ( STOCKOUTID IS NULL OR STOCKOUTID = 0 )", outTable.Rows[i]["CIGARETTECODE"].ToString()), "STOCKINID");
@@ -45,6 +45,18 @@ namespace THOK.AS.Stocking.StockOutProcess
                                 {
                                     stockInRows[0]["STOCKOUTID"] = outTable.Rows[i]["STOCKOUTID"].ToString();
                                     outTable.Rows[i]["STATE"] = 1;
+
+                                    StockInBatchDao stockInBatchDao = new StockInBatchDao();
+                                    DataTable stockInBatchTable = stockInBatchDao.FindStockInBatch(outTable.Rows[i]["CIGARETTECODE"].ToString());
+
+                                    if (stockInBatchTable.Rows.Count != 0)
+                                    {
+                                        if (stockInRows.Length <= 5)
+                                        {
+                                            Logger.Error(string.Format("[{0}] [{1}] ¿â´æ²»×ã£¡", outTable.Rows[i]["CIGARETTECODE"].ToString(), outTable.Rows[i]["CIGARETTENAME"].ToString()));
+                                            WriteToProcess("LEDProcess", "StockInRequestShow", outTable.Rows[0]["CIGARETTENAME"]);
+                                        }
+                                    }
                                 }
                                 else
                                 {

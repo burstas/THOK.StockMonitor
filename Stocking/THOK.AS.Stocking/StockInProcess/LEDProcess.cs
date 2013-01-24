@@ -48,6 +48,8 @@ namespace THOK.AS.Stocking.StockInProcess
 
             ledUtil.isActiveLeds = isActiveLeds;
         }
+        private bool bLock = false;
+        private string cigaretteName = string.Empty;
 
         protected override void StateChanged(StateItem stateItem, IProcessDispatcher dispatcher)
         {
@@ -56,17 +58,26 @@ namespace THOK.AS.Stocking.StockInProcess
              *  Refresh：刷新LED屏。
              *      ‘01’：一号屏 显示请求入库托盘信息
              *      ‘02’：二号屏 显示请求补货的混合烟道补货顺序信息
-             */
-            string cigaretteName = "";
-
+             */           
             switch (stateItem.ItemName)
             {
                 case "Refresh":
                     this.Refresh();
                     break;
                 case "StockInRequestShow":
-                    cigaretteName = Convert.ToString(stateItem.State);
-                    this.StockInRequestShow(cigaretteName);
+                    if (!bLock)
+                    {
+                        cigaretteName = Convert.ToString(stateItem.State);
+                        this.StockInRequestShow(cigaretteName);
+                        bLock = true;
+                    }                    
+                    break;
+                case "StockInRequestEnd":
+                    if (cigaretteName == Convert.ToString(stateItem.State))
+                    {
+                        cigaretteName = string.Empty;
+                        bLock = false;
+                    }
                     break;
                 default:
                     if (stateItem.ItemName != string.Empty && stateItem.State is LedItem[])
@@ -79,12 +90,15 @@ namespace THOK.AS.Stocking.StockInProcess
 
         private void Refresh()
         {
-            //刷新1号屏
-            using (PersistentManager pm = new PersistentManager())
+            if (!bLock)
             {
-                StockInBatchDao stockInBatchDao = new StockInBatchDao();
-                DataTable batchTable = stockInBatchDao.FindStockInTopAnyBatch();
-                ledUtil.RefreshStockInLED(batchTable, "1");
+                //刷新1号屏
+                using (PersistentManager pm = new PersistentManager())
+                {
+                    StockInBatchDao stockInBatchDao = new StockInBatchDao();
+                    DataTable batchTable = stockInBatchDao.FindStockInTopAnyBatch();
+                    ledUtil.RefreshStockInLED(batchTable, "1");
+                }
             }
         }
 
