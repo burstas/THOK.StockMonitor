@@ -154,6 +154,16 @@ namespace THOK.AS.Stocking.View
                             downloadDataDao.Clear();
                             System.Threading.Thread.Sleep(100);
 
+                            //初始化入库扫码器
+                            Context.ProcessDispatcher.WriteToProcess("ScanProcess", "Init", null);
+                            //初始化状态管理器
+                            Context.ProcessDispatcher.WriteToProcess("LedStateProcess", "Init", null);
+                            Context.ProcessDispatcher.WriteToProcess("OrderDataStateProcess", "Init", null);
+                            Context.ProcessDispatcher.WriteToProcess("ScannerStateProcess", "Init", null);
+
+                            //初始化入库请求线程
+                            Context.ProcessDispatcher.WriteToProcess("StockInRequestProcess", "Init", null);
+
                             //AS_SC_STOCKCHANNEL
                             Context.ProcessDispatcher.WriteToProcess("monitorView", "ProgressState", new ProgressState("下载补货烟道表", 5, 2));
                             downloadDataDao.InsertStockChannel(serverDao.FindStockChannel(orderDate, batchNo));
@@ -178,16 +188,12 @@ namespace THOK.AS.Stocking.View
                             string dataAndTip = "数据下载完成，订单日期：[{0}],批次号：[{1}],总数量：[{2}]";
                             Logger.Info(string.Format(dataAndTip,orderDate,batchNo,totalQuantity));
 
+
+                            //生成入库请求任务数据
+                            Context.ProcessDispatcher.WriteToProcess("StockInRequestProcess", "FirstBatch", null);
+
                             //初始化PLC数据（叠垛线PLC，补货线PLC）
                             Context.ProcessDispatcher.WriteToService("StockPLC_01", "RestartData", 3);
-                            //初始化入库扫码器
-                            Context.ProcessDispatcher.WriteToProcess("ScanProcess", "Init", null);
-                            //初始化状态管理器
-                            Context.ProcessDispatcher.WriteToProcess("LedStateProcess", "Init", null);
-                            Context.ProcessDispatcher.WriteToProcess("OrderDataStateProcess", "Init", null);
-                            Context.ProcessDispatcher.WriteToProcess("ScannerStateProcess", "Init", null);
-                            //生成入库请求任务数据
-                            Context.ProcessDispatcher.WriteToProcess("StockInRequestProcess", "FirstBatch", null);               
                         }
                         else
                             MessageBox.Show("没有补货计划数据！", "消息", MessageBoxButtons.OK, MessageBoxIcon.Information);

@@ -11,6 +11,7 @@ namespace THOK.AS.Stocking.StockInProcess
 {
     class StockInRequestProcess : AbstractProcess
     {
+        private static bool bLock = false;
         private static string strLock = string.Empty;
         protected override void StateChanged(StateItem stateItem, IProcessDispatcher dispatcher)
         {
@@ -31,18 +32,23 @@ namespace THOK.AS.Stocking.StockInProcess
                     switch (stateItem.ItemName)
                     {
                         case "Init":
+                            bLock = true;
                             break;
                         case "FirstBatch":
                             if (AddFirstBatch())
                             {
                                 WriteToProcess("LEDProcess", "Refresh", null);
                             }
+                            bLock = false;
                             break;
                         case "StockInRequest":
-                            cigaretteCode = Convert.ToString(stateItem.State);
-                            if (Request(cigaretteCode) || RequestAll())
+                            if (!bLock)
                             {
-                                WriteToProcess("LEDProcess", "Refresh", null);
+                                cigaretteCode = Convert.ToString(stateItem.State);
+                                if (Request(cigaretteCode) || RequestAll())
+                                {
+                                    WriteToProcess("LEDProcess", "Refresh", null);
+                                }
                             }
                             break;
                         default:
